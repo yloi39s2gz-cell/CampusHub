@@ -1,0 +1,131 @@
+# 智枢 CampusHub 技术报告 —— md2docx 版式配置
+# 依据官方模板 2026AIC-_____-.doc 精排（第八届全球校园人工智能算法精英大赛·算法主题赛·智能体互联）
+# 字体说明：本机无 SimSun/宋体，中文统一使用 Noto Serif CJK SC（思源宋体，字形最接近）；
+#          在装有宋体的机器上把 font_name 改回 "SimSun" 即可得到严格宋体。
+cover:
+  enabled: false          # 封面由 build/postprocess.py 按模板变量重建（分级居中 + 细线分隔）
+
+toc:
+  enabled: false          # 目录由 build/inject_toc.py 生成带真实页码的手工目录（模板要求）
+
+styles:
+  body:
+    font_name: "Noto Serif CJK SC"
+    font_name_ascii: "Times New Roman"
+    font_size: 12        # 小四
+    line_spacing: 1.0    # 单倍行距
+    bold: false
+    italic: false
+    alignment: "justify"
+    first_line_indent: 2
+    space_before: 0
+    space_after: 0
+    color: "000000"
+
+  headings:
+    h1:
+      font_name: "Noto Serif CJK SC"
+      font_name_ascii: "Times New Roman"
+      font_size: 22      # 二号
+      bold: true
+      italic: false
+      alignment: "center"
+      space_before: 12
+      space_after: 12
+      color: "000000"
+    h2:
+      font_name: "Noto Serif CJK SC"
+      font_name_ascii: "Times New Roman"
+      font_size: 16      # 三号 —— 一级标题
+      bold: true
+      italic: false
+      alignment: "left"
+      space_before: 18
+      space_after: 8
+      color: "000000"
+    h3:
+      font_name: "Noto Serif CJK SC"
+      font_name_ascii: "Times New Roman"
+      font_size: 14      # 四号 —— 二级标题
+      bold: true
+      italic: false
+      alignment: "left"
+      space_before: 12
+      space_after: 6
+      color: "000000"
+    h4:
+      font_name: "Noto Serif CJK SC"
+      font_name_ascii: "Times New Roman"
+      font_size: 12      # 小四 —— 三级标题
+      bold: true
+      italic: false
+      alignment: "left"
+      space_before: 8
+      space_after: 4
+      color: "000000"
+    h5:
+      font_name: "Noto Serif CJK SC"
+      font_name_ascii: "Times New Roman"
+      font_size: 12
+      bold: true
+      italic: false
+      alignment: "left"
+      space_before: 6
+      space_after: 3
+      color: "000000"
+    h6:
+      font_name: "Noto Serif CJK SC"
+      font_name_ascii: "Times New Roman"
+      font_size: 12
+      bold: true
+      italic: false
+      alignment: "left"
+      space_before: 6
+      space_after: 3
+      color: "000000"
+
+  table:
+    font_name: "Noto Serif CJK SC"
+    font_name_ascii: "Times New Roman"
+    font_size: 10        # 五号
+    bold: false
+    header_bold: true
+    alignment: "center"
+    line_spacing: 1.0
+
+  list:
+    font_name: "Noto Serif CJK SC"
+    font_name_ascii: "Times New Roman"
+    font_size: 12
+    line_spacing: 1.0
+    indent: 0
+    first_line_indent: 2
+
+  code:
+    font_name: "Noto Sans Mono CJK SC"
+    font_name_ascii: "DejaVu Sans Mono"
+    font_size: 9
+    line_spacing: 1.0
+    border_color: "AAAAAA"
+    border_width: 0.5
+    show_border: true
+    keep_together: true       # 代码块尽量不被分页截断
+
+  blockquote:
+    font_name: "Noto Serif CJK SC"
+    font_name_ascii: "Times New Roman"
+    font_size: 12
+    italic: false
+    line_spacing: 1.0
+    left_indent: 0.5
+    border_left_color: "AAAAAA"
+    show_border_left: false    # 禁用左侧竖线（保持三线表规范）
+
+page:
+  size: "A4"                 # A4 纵向
+  top_margin: 2.5            # 上 2.5cm
+  bottom_margin: 2.5         # 下 2.5cm
+  left_margin: 3.0           # 左 3cm
+  right_margin: 3.0          # 右 3cm
+  page_number:
+    enabled: false           # 页码由 postprocess.py 分节生成（封面不编号、正文从第 3 页起编"1"）

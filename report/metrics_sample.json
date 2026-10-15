@@ -1,0 +1,29 @@
+{
+  "invoke": {
+    "total": 2,
+    "ok": 2,
+    "fail": 0,
+    "success_rate": 100.0,
+    "avg_latency_ms": 8.31,
+    "p95_latency_ms": 16.56
+  },
+  "task": {
+    "total": 1,
+    "ok": 1,
+    "fail": 0,
+    "success_rate": 100.0,
+    "avg_latency_ms": 0.23,
+    "p95_latency_ms": 0.23,
+    "avg_node_count": 2.0
+  },
+  "agents": {
+    "course-qa": {
+      "total": 1,
+      "ok": 1
+    },
+    "library": {
+      "total": 1,
+      "ok": 1
+    }
+  }
+}

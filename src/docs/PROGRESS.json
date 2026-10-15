@@ -1,0 +1,11 @@
+{
+  "blockers": [
+    "梧桐平台后台截图仍为占位图（待平台验证完成后替换，不编造数据）",
+    "本机无 SimSun/宋体，中文以 Noto Serif CJK SC 渲染；在装有宋体的机器上用同 config.yaml 重新导出即为严格宋体"
+  ],
+  "current_task": "技术报告 Qoder 排版修复完成：封面 6 要素齐全、封面页无目录残留、表格分页优化、占位图框规范；重导出 report.pdf（33 页，1.7MB，A4），封面/目录已用 pdftoppm 渲染复核。",
+  "percent": 100,
+  "phase": "技术报告 Qoder 修复",
+  "status": "done",
+  "updated_at": "2026-10-15T13:45:00+08:00"
+}

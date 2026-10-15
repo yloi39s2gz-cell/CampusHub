@@ -1,0 +1,14 @@
+# 智枢 CampusHub 一键部署
+version: "3.8"
+
+services:
+  campushub:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    container_name: campushub
+    ports:
+      - "8000:8000"
+    environment:
+      - ZHISHU_SECRET=campushub-demo-secret
+    restart: unless-stopped

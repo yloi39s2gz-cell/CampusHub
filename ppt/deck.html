@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智枢 CampusHub — 答辩演示</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700;900&family=Noto+Serif+SC:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #F8FAFE; --bg-card: #FFFFFF; --text-primary: #1B2F4B; --text-secondary: #6B7280; --text-muted: #9CA3AF;
+            --accent-orange: #F2994A; --accent-teal: #2AA8B5; --accent-red: #D9534F; --accent-green: #27AE60;
+            --accent-navy: #1B2F4B; --accent-blue: #2563EB; --accent-blue-light: #3B82F6;
+            --gradient-separator: linear-gradient(90deg, #2563EB, #F2994A);
+            --shadow-card: 0 2px 12px rgba(27,47,75,0.06), 0 1px 4px rgba(27,47,75,0.04);
+            --shadow-image: 0 8px 40px rgba(27,47,75,0.12), 0 2px 12px rgba(27,47,75,0.06);
+            --radius-sm: 10px; --radius-md: 16px; --radius-lg: 20px; --radius-xl: 24px;
+            --font-body: 'Noto Sans SC', -apple-system, BlinkMacSystemFont, sans-serif;
+            --font-serif: 'Noto Serif SC', Georgia, serif;
+            --section-title-size: 60px; --body-size: 22px; --slide-padding: 80px;
+            --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1); --duration-normal: 0.6s;
+        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        html, body { width:100%; height:100%; margin:0; overflow:hidden; background:var(--bg-primary); font-family:var(--font-body); }
+        .deck-viewport { position:fixed; inset:0; overflow:hidden; background:var(--bg-primary); }
+        .deck-stage { position:absolute; left:0; top:0; width:1920px; height:1080px; overflow:hidden; transform-origin:0 0; background:var(--bg-primary); }
+        .slide { position:absolute; inset:0; width:1920px; height:1080px; overflow:hidden; display:block; visibility:hidden; opacity:0; pointer-events:none; background:var(--bg-primary); }
+        .slide.active, .slide.visible { visibility:visible; opacity:1; pointer-events:auto; z-index:1; }
+        img, video, canvas, svg { max-width:100%; max-height:100%; }
+        @media print {
+            html, body { width:1920px; height:auto; overflow:visible; background:#fff; }
+            .deck-viewport { position:static; overflow:visible; background:#fff; }
+            .deck-stage { position:static; width:auto; height:auto; transform:none !important; background:none; }
+            .slide { position:relative; display:block !important; visibility:visible !important; opacity:1 !important; pointer-events:auto !important; width:1920px; height:1080px; break-after:page; page-break-after:always; }
+            .slide:last-child { break-after:auto; page-break-after:auto; }
+        }
+        @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration:0.01ms !important; transition-duration:0.2s !important; } }
+
+        .slide-bg { position:absolute; inset:0; z-index:0; pointer-events:none; }
+        .slide-bg-gradient { background:linear-gradient(160deg, rgba(248,250,254,1) 0%, rgba(241,245,255,0.6) 40%, rgba(248,250,254,1) 100%); }
+        .slide-bg-geo::before { content:''; position:absolute; top:-80px; right:-80px; width:360px; height:360px; border-radius:50%; background:radial-gradient(circle, rgba(37,99,235,0.05) 0%, transparent 70%); }
+        .slide-bg-geo::after { content:''; position:absolute; bottom:-60px; left:-60px; width:280px; height:280px; border-radius:50%; background:radial-gradient(circle, rgba(42,168,181,0.04) 0%, transparent 70%); }
+        .slide-bg-lines::before { content:''; position:absolute; top:120px; right:60px; width:240px; height:1px; background:linear-gradient(90deg, transparent, rgba(37,99,235,0.15), transparent); }
+        .slide-bg-lines::after { content:''; position:absolute; bottom:100px; left:80px; width:200px; height:1px; background:linear-gradient(90deg, transparent, rgba(242,153,74,0.12), transparent); }
+        .slide-bg-dots { background-image:radial-gradient(circle, rgba(37,99,235,0.06) 1px, transparent 1px); background-size:40px 40px; }
+        .slide-bg-deco::before { content:''; position:absolute; top:60px; left:60px; width:120px; height:120px; border:1px solid rgba(37,99,235,0.06); border-radius:50%; }
+        .slide-bg-deco::after { content:''; position:absolute; bottom:80px; right:100px; width:80px; height:80px; border:1px solid rgba(242,153,74,0.06); border-radius:12px; transform:rotate(15deg); }
+
+        .slide-inner { width:100%; height:100%; padding:var(--slide-padding); display:flex; flex-direction:column; position:relative; z-index:1; }
+        .page-header { display:flex; align-items:center; gap:24px; margin-bottom:24px; }
+        .page-badge { width:60px; height:60px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#FFF; font-size:22px; font-weight:700; flex-shrink:0; box-shadow:0 4px 16px rgba(0,0,0,0.12); }
+        .page-badge-01 { background:linear-gradient(135deg, #F2994A, #F5B041); }
+        .page-badge-02 { background:linear-gradient(135deg, #2AA8B5, #36C5D2); }
+        .page-badge-03 { background:linear-gradient(135deg, #D9534F, #E0706D); }
+        .page-badge-04 { background:linear-gradient(135deg, #1B2F4B, #2C4A72); }
+        .page-badge-05 { background:linear-gradient(135deg, #2563EB, #3B82F6); }
+        .page-title-group { flex:1; }
+        .page-title { font-family:var(--font-serif); font-size:var(--section-title-size); font-weight:700; color:var(--text-primary); line-height:1.15; margin-bottom:6px; }
+        .page-subtitle { font-size:20px; color:var(--text-secondary); line-height:1.4; }
+        .page-separator { width:100%; height:3px; background:var(--gradient-separator); margin-bottom:32px; border-radius:2px; position:relative; }
+        .page-separator::after { content:''; position:absolute; right:4px; top:-3px; width:9px; height:9px; border-radius:50%; background:var(--accent-orange); }
+
+        h1 { font-family:var(--font-serif); font-weight:900; font-size:72px; line-height:1.15; color:var(--text-primary); letter-spacing:-1px; }
+        h2 { font-family:var(--font-serif); font-weight:700; font-size:48px; line-height:1.2; color:var(--text-primary); margin-bottom:20px; }
+        h3 { font-family:var(--font-body); font-weight:700; font-size:26px; color:var(--text-primary); }
+
+        .reveal { opacity:0; transform:translateY(24px); transition:opacity var(--duration-normal) var(--ease-out-expo), transform var(--duration-normal) var(--ease-out-expo); }
+        .slide.visible .reveal { opacity:1; transform:translateY(0); }
+        .reveal:nth-child(1) { transition-delay:0.05s; } .reveal:nth-child(2) { transition-delay:0.12s; }
+        .reveal:nth-child(3) { transition-delay:0.19s; } .reveal:nth-child(4) { transition-delay:0.26s; }
+        .reveal:nth-child(5) { transition-delay:0.33s; } .reveal:nth-child(6) { transition-delay:0.40s; }
+        .reveal-scale { opacity:0; transform:scale(0.94); transition:opacity 0.7s var(--ease-out-expo), transform 0.7s var(--ease-out-expo); }
+        .slide.visible .reveal-scale { opacity:1; transform:scale(1); }
+
+        .card { background:var(--bg-card); border-radius:var(--radius-md); padding:28px 32px; box-shadow:var(--shadow-card); position:relative; overflow:hidden; border:1px solid #E5EAF2; }
+        .card::before { content:''; position:absolute; top:0; left:0; right:0; height:1px; background:linear-gradient(90deg, transparent, rgba(255,255,255,0.8), transparent); }
+        .bar-top { position:absolute; top:0; left:0; right:0; height:5px; }
+        .bar-top-orange { background:linear-gradient(90deg, #F2994A, #F5B041); }
+        .bar-top-teal { background:linear-gradient(90deg, #2AA8B5, #36C5D2); }
+        .bar-top-red { background:linear-gradient(90deg, #D9534F, #E0706D); }
+        .bar-top-green { background:linear-gradient(90deg, #27AE60, #2ECC71); }
+        .bar-top-navy { background:linear-gradient(90deg, #1B2F4B, #2C4A72); }
+        .bar-top-blue { background:linear-gradient(90deg, #2563EB, #3B82F6); }
+        .card-left-bar { position:relative; padding-left:44px; }
+        .card-left-bar::before { content:''; position:absolute; left:0; top:0; bottom:0; width:5px; border-radius:0 3px 3px 0; }
+        .card-left-bar-orange::before { background:linear-gradient(180deg, #F2994A, #F5B041); }
+        .card-left-bar-teal::before { background:linear-gradient(180deg, #2AA8B5, #36C5D2); }
+        .card-left-bar-red::before { background:linear-gradient(180deg, #D9534F, #E0706D); }
+        .card-left-bar-green::before { background:linear-gradient(180deg, #27AE60, #2ECC71); }
+        .card-left-bar-navy::before { background:linear-gradient(180deg, #1B2F4B, #2C4A72); }
+        .card-left-bar-blue::before { background:linear-gradient(180deg, #2563EB, #3B82F6); }
+        .bullet-list { list-style:none; padding:0; }
+        .bullet-list li { font-size:var(--body-size); line-height:1.7; color:var(--text-secondary); padding:6px 0 6px 28px; position:relative; }
+        .bullet-list li::before { content:''; position:absolute; left:0; top:17px; width:8px; height:8px; border-radius:50%; background:var(--accent-blue); }
+        .num-badge { display:inline-flex; align-items:center; justify-content:center; width:40px; height:40px; border-radius:50%; color:#FFF; font-size:17px; font-weight:700; margin-right:12px; flex-shrink:0; box-shadow:0 2px 8px rgba(0,0,0,0.12); }
+        .stat-num { font-weight:900; font-size:72px; line-height:1; margin-bottom:8px; }
+        .stat-num-orange { color:var(--accent-orange); } .stat-num-teal { color:var(--accent-teal); }
+        .stat-num-red { color:var(--accent-red); } .stat-num-green { color:var(--accent-green); }
+        .stat-num-navy { color:var(--accent-navy); } .stat-num-blue { color:var(--accent-blue); }
+        .stat-label { font-size:17px; color:var(--text-secondary); margin-top:6px; }
+        .data-table { width:100%; border-collapse:collapse; font-size:20px; }
+        .data-table th { text-align:left; padding:14px 16px; font-weight:700; color:var(--text-primary); border-bottom:3px solid var(--accent-teal); font-size:17px; }
+        .data-table td { padding:14px 16px; color:var(--text-secondary); border-bottom:1px solid #E5E7EB; }
+        .data-table tr:last-child td { border-bottom:none; }
+        .tag { display:inline-block; padding:5px 14px; border-radius:20px; font-size:15px; font-weight:500; }
+        .tag-orange { color:var(--accent-orange); background:rgba(242,153,74,0.10); }
+        .tag-teal { color:var(--accent-teal); background:rgba(42,168,181,0.10); }
+        .tag-red { color:var(--accent-red); background:rgba(217,83,79,0.10); }
+        .tag-green { color:var(--accent-green); background:rgba(39,174,96,0.10); }
+        .tag-navy { color:var(--accent-navy); background:rgba(27,47,75,0.10); }
+        .tag-blue { color:var(--accent-blue); background:rgba(37,99,235,0.10); }
+        .img-frame { border-radius:var(--radius-lg); overflow:hidden; background:#F9FAFB; box-shadow:var(--shadow-image); border:1px solid #E5EAF2; }
+        .img-frame img { width:100%; height:100%; object-fit:contain; }
+        .ai-illust-frame { border-radius:var(--radius-xl); overflow:hidden; box-shadow:var(--shadow-image); }
+        .ai-illust-frame img { width:100%; height:100%; object-fit:cover; display:block; }
+        .two-col { display:grid; grid-template-columns:1fr 1fr; gap:40px; flex:1; }
+        .split-layout { display:grid; grid-template-columns:55fr 45fr; gap:40px; flex:1; align-items:stretch; }
+        .split-layout-reverse { display:grid; grid-template-columns:45fr 55fr; gap:40px; flex:1; align-items:stretch; }
+        .three-col { display:grid; grid-template-columns:1fr 1fr 1fr; gap:28px; }
+        .four-col { display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:24px; }
+        .flow-step { display:flex; align-items:flex-start; gap:16px; padding:14px 0; }
+        .result-banner { background:linear-gradient(135deg, #27AE60, #2ECC71); color:#FFF; padding:22px 40px; border-radius:var(--radius-md); font-size:30px; font-weight:700; text-align:center; margin-top:28px; box-shadow:0 4px 20px rgba(39,174,96,0.25); }
+        .protocol-card { padding:14px 20px; border-radius:var(--radius-sm); background:var(--bg-card); box-shadow:var(--shadow-card); border:1px solid #E5EAF2; }
+        .protocol-card-name { font-size:16px; font-weight:700; color:var(--text-primary); margin-bottom:4px; }
+        .protocol-card-desc { font-size:14px; color:var(--text-secondary); }
+        .progress-bar-wrap { width:100%; height:10px; background:#E5E7EB; border-radius:5px; overflow:hidden; margin-top:8px; }
+        .progress-bar-fill { height:100%; border-radius:5px; transition:width 1s var(--ease-out-expo); }
+
+        /* COVER */
+        .cover-bg-image { position:absolute; inset:0; z-index:0; }
+        .cover-bg-image img { width:100%; height:100%; object-fit:cover; }
+        .cover-dark-overlay { position:absolute; inset:0; z-index:1; background:linear-gradient(180deg, #0F1E33DD 0%, #1B2F4BCC 35%, #1B2F4B99 65%, #1B2F4B66 100%); }
+        .cover-content { position:relative; z-index:2; width:100%; height:100%; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; padding:60px 80px; }
+        .cover-top-label { font-size:18px; color:rgba(203,213,225,0.9); font-weight:500; letter-spacing:2px; margin-bottom:20px; }
+        .cover-deco-line { width:60px; height:3px; background:linear-gradient(90deg, var(--accent-blue), var(--accent-orange)); margin:0 auto 28px; border-radius:2px; }
+        .cover-title { font-family:var(--font-serif); font-size:100px; font-weight:900; margin-bottom:16px; letter-spacing:-2px; line-height:1.1; color:#FFF; text-shadow:0 4px 24px rgba(0,0,0,0.3); }
+        .cover-title-accent { color:#93C5FD; }
+        .cover-title-deco { width:120px; height:4px; background:linear-gradient(90deg, var(--accent-orange), var(--accent-teal)); margin:0 auto 24px; border-radius:3px; }
+        .cover-subtitle { font-size:34px; color:#CBD5E1; font-weight:500; margin-bottom:28px; line-height:1.3; }
+        .cover-stats { display:flex; gap:20px; justify-content:center; margin-bottom:40px; font-size:19px; color:rgba(203,213,225,0.8); font-weight:500; }
+        .cover-stats .dot { color:var(--accent-orange); }
+        .cover-bottom-deco { width:60px; height:3px; background:linear-gradient(90deg, var(--accent-blue), var(--accent-orange)); margin:0 auto 32px; border-radius:2px; }
+        .cover-meta { display:flex; justify-content:space-between; font-size:17px; color:rgba(203,213,225,0.7); max-width:860px; margin:0 auto; }
+        .cover-meta-label { color:rgba(255,255,255,0.9); font-weight:600; margin-bottom:4px; }
+
+        /* TRANSITION */
+        .transition-slide { position:relative; width:100%; height:100%; }
+        .transition-bg { position:absolute; inset:0; z-index:0; }
+        .transition-bg img { width:100%; height:100%; object-fit:cover; filter:brightness(0.35) saturate(0.8); }
+        .transition-overlay { position:absolute; inset:0; z-index:1; background:linear-gradient(135deg, rgba(27,47,75,0.7) 0%, rgba(37,99,235,0.3) 50%, rgba(27,47,75,0.6) 100%); }
+        .transition-content { position:relative; z-index:2; width:100%; height:100%; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; padding:80px; }
+        .transition-chapter-num { font-family:var(--font-serif); font-size:140px; font-weight:900; color:rgba(255,255,255,0.06); line-height:1; margin-bottom:-40px; }
+        .transition-label { font-size:16px; color:rgba(255,255,255,0.6); font-weight:600; letter-spacing:6px; text-transform:uppercase; margin-bottom:20px; }
+        .transition-title { font-family:var(--font-serif); font-size:80px; font-weight:900; color:#FFF; line-height:1.1; margin-bottom:20px; text-shadow:0 4px 32px rgba(0,0,0,0.4); }
+        .transition-subtitle { font-size:26px; color:rgba(255,255,255,0.7); font-weight:400; max-width:800px; }
+        .transition-deco { width:100px; height:4px; background:linear-gradient(90deg, var(--accent-blue), var(--accent-orange)); margin:24px auto 0; border-radius:3px; }
+
+        /* THANKYOU */
+        .thankyou-bg { background:linear-gradient(160deg, #0F1E33 0%, #1B2F4B 40%, #1a2744 100%); }
+        .thankyou-bg::before { content:''; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:800px; height:800px; border-radius:50%; background:radial-gradient(circle, rgba(37,99,235,0.08) 0%, transparent 50%); }
+
+        .edit-hotzone { position:fixed; top:0; left:0; width:80px; height:80px; z-index:10000; cursor:pointer; }
+        .edit-toggle { position:fixed; top:16px; left:16px; width:44px; height:44px; border-radius:10px; background:rgba(42,168,181,0.15); border:1px solid rgba(42,168,181,0.3); color:var(--accent-teal); font-size:20px; cursor:pointer; opacity:0; pointer-events:none; transition:opacity 0.3s ease; z-index:10001; display:flex; align-items:center; justify-content:center; }
+        .edit-toggle.show, .edit-toggle.active { opacity:1; pointer-events:auto; }
+        .edit-toggle.active { background:rgba(42,168,181,0.25); }
+        [contenteditable="true"] { outline:1px dashed rgba(42,168,181,0.4); outline-offset:4px; border-radius:4px; }
+        .slide-counter { position:fixed; bottom:20px; right:28px; font-size:13px; color:var(--text-muted); z-index:1000; font-weight:500; letter-spacing:1px; display:flex; align-items:center; gap:8px; }
+        .slide-counter::before { content:''; display:inline-block; width:24px; height:2px; background:linear-gradient(90deg, var(--accent-blue), var(--accent-orange)); border-radius:1px; }
+    </style>
+</head>
+<body>
+    <div class="deck-viewport">
+        <main class="deck-stage" id="deckStage">
+
+            <!-- SLIDE 1: COVER -->
+            <section class="slide active" id="slide-1">
+                <div class="cover-bg-image"><img src="img/media-generation-cover-v3-0-c97a24ca-aebb-4e9f-8646-9a7316c5b261.webp" alt=""></div>
+                <div class="cover-dark-overlay"></div>
+                <div class="cover-content">
+                    <div style="max-width:1200px;">
+                        <div class="reveal cover-top-label">第八届全球校园人工智能算法精英大赛 · 算法主题赛 | 智能体互联</div>
+                        <div class="reveal cover-deco-line"></div>
+                        <h1 class="reveal cover-title">智枢 <span class="cover-title-accent">CampusHub</span></h1>
+                        <div class="reveal cover-title-deco"></div>
+                        <p class="reveal cover-subtitle">基于 AIP 国标的校园多智能体协同服务中枢</p>
+                        <div class="reveal cover-stats">
+                            <span id="cover-tests">143 测试全绿</span><span class="dot">·</span>
+                            <span id="cover-apis">10 个 API</span><span class="dot">·</span>
+                            <span>Docker 一键部署</span>
+                        </div>
+                        <div class="reveal cover-bottom-deco"></div>
+                        <div class="reveal cover-meta">
+                            <div style="text-align:left;"><div class="cover-meta-label">团队名称</div><div>________</div></div>
+                            <div style="text-align:right;"><div class="cover-meta-label">参赛编号</div><div>AIC-2026-________</div></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SLIDE 2: PAIN POINTS -->
+            <section class="slide" id="slide-2">
+                <div class="slide-bg slide-bg-gradient slide-bg-geo slide-bg-lines"></div>
+                <div class="slide-inner">
+                    <div class="page-header reveal"><div class="page-badge page-badge-03">02</div><div class="page-title-group"><div class="page-title">行业痛点</div><div class="page-subtitle">多智能体互联面临的三大挑战</div></div></div>
+                    <div class="page-separator reveal"></div>
+                    <div style="flex:1;display:flex;align-items:center;">
+                        <div class="three-col">
+                            <div class="reveal card card-left-bar card-left-bar-orange">
+                                <svg width="56" height="56" viewBox="0 0 64 64" style="margin-bottom:14px;" fill="none"><rect width="64" height="64" rx="16" fill="rgba(242,153,74,0.10)"/><path d="M20 32h8M36 32h8M28 28v8M36 28v8" stroke="#F2994A" stroke-width="3" stroke-linecap="round"/><circle cx="24" cy="32" r="4" fill="#F2994A"/><circle cx="40" cy="32" r="4" fill="#F2994A"/><path d="M28 32l4-4 4 4" stroke="#D9534F" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                <h3 style="font-size:24px;margin-bottom:10px;">异构协议割裂</h3>
+                                <p style="font-size:19px;color:var(--text-secondary);line-height:1.6;">MCP / OpenAPI / 自定义 HTTP 形成协议孤岛，新增协议即重写对接，集成成本线性增长</p>
+                            </div>
+                            <div class="reveal card card-left-bar card-left-bar-teal">
+                                <svg width="56" height="56" viewBox="0 0 64 64" style="margin-bottom:14px;" fill="none"><rect width="64" height="64" rx="16" fill="rgba(42,168,181,0.10)"/><circle cx="32" cy="32" r="10" stroke="#2AA8B5" stroke-width="3"/><path d="M32 18v4M32 42v4M18 32h4M42 32h4M22 22l3 3M39 39l3 3M22 42l3-3M39 25l3-3" stroke="#2AA8B5" stroke-width="2.5" stroke-linecap="round"/><path d="M28 32l8-8" stroke="#F2994A" stroke-width="2.5" stroke-linecap="round"/><circle cx="36" cy="24" r="3" fill="#F2994A"/></svg>
+                                <h3 style="font-size:24px;margin-bottom:10px;">协同调度缺失</h3>
+                                <p style="font-size:19px;color:var(--text-secondary);line-height:1.6;">复杂任务需手动编排调用链，缺乏声明式 DAG 编排、拓扑排序与容错机制</p>
+                            </div>
+                            <div class="reveal card card-left-bar card-left-bar-red">
+                                <svg width="56" height="56" viewBox="0 0 64 64" style="margin-bottom:14px;" fill="none"><rect width="64" height="64" rx="16" fill="rgba(217,83,79,0.10)"/><rect x="18" y="20" width="28" height="28" rx="3" stroke="#D9534F" stroke-width="3"/><path d="M24 30h16M24 36h10" stroke="#D9534F" stroke-width="2.5" stroke-linecap="round"/><path d="M42 18l6 6" stroke="#F2994A" stroke-width="3" stroke-linecap="round"/><circle cx="48" cy="18" r="3" fill="#F2994A"/></svg>
+                                <h3 style="font-size:24px;margin-bottom:10px;">国标落地鸿沟</h3>
+                                <p style="font-size:19px;color:var(--text-secondary);line-height:1.6;">GB/Z 185 七部分已发布，但从标准到工程实践缺乏可复用的参考实现</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SLIDE 3: COMPETITION DIRECTIONS -->
+            <section class="slide" id="slide-3">
+                <div class="slide-bg slide-bg-gradient slide-bg-dots slide-bg-deco"></div>
+                <div class="slide-inner">
+                    <div class="page-header reveal"><div class="page-badge page-badge-04">03</div><div class="page-title-group"><div class="page-title">赛题方向全覆盖</div><div class="page-subtitle">四个赛道方向完整对应</div></div></div>
+                    <div class="page-separator reveal"></div>
+                    <div style="flex:1;display:flex;align-items:center;">
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;max-width:1400px;margin:0 auto;">
+                            <div class="reveal card card-left-bar card-left-bar-teal"><p style="font-size:16px;color:var(--accent-teal);font-weight:700;margin-bottom:6px;">方向一</p><h3 style="font-size:24px;margin-bottom:6px;">异构协议适配</h3><p style="font-size:19px;color:var(--text-secondary);">→ HeteroAdapter 翻译网关</p></div>
+                            <div class="reveal card card-left-bar card-left-bar-orange"><p style="font-size:16px;color:var(--accent-orange);font-weight:700;margin-bottom:6px;">方向二</p><h3 style="font-size:24px;margin-bottom:6px;">多智能体协同调度</h3><p style="font-size:19px;color:var(--text-secondary);">→ DAG 调度引擎</p></div>
+                            <div class="reveal card card-left-bar card-left-bar-red"><p style="font-size:16px;color:var(--accent-red);font-weight:700;margin-bottom:6px;">方向三</p><h3 style="font-size:24px;margin-bottom:6px;">交互安全管控</h3><p style="font-size:19px;color:var(--text-secondary);">→ 安全闭环（鉴权+过滤+审计）</p></div>
+                            <div class="reveal card card-left-bar card-left-bar-green"><p style="font-size:16px;color:var(--accent-green);font-weight:700;margin-bottom:6px;">方向四</p><h3 style="font-size:24px;margin-bottom:6px;">垂直场景创新</h3><p style="font-size:19px;color:var(--text-secondary);">→ 4 个校园演示智能体</p></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SLIDE 4: ARCHITECTURE -->
+            <section class="slide" id="slide-4">
+                <div class="slide-bg slide-bg-gradient slide-bg-geo"></div>
+                <div class="slide-inner">
+                    <div class="page-header reveal"><div class="page-badge page-badge-01">04</div><div class="page-title-group"><div class="page-title">五层分层架构</div><div class="page-subtitle">系统总体架构设计</div></div></div>
+                    <div class="page-separator reveal"></div>
+                    <div style="flex:1;display:flex;flex-direction:column;gap:20px;">
+                        <div class="reveal-scale img-frame" style="flex:1;min-height:0;max-height:600px;"><img src="img/architecture.png" alt="系统架构图" style="width:100%;height:100%;object-fit:contain;"></div>
+                        <div class="reveal" style="display:flex;gap:20px;justify-content:center;font-size:17px;color:var(--text-secondary);">
+                            <span>接入层</span><span style="color:var(--accent-teal);">→</span>
+                            <span>网关层 <span style="color:var(--accent-teal);font-weight:600;">(10 API)</span></span><span style="color:var(--accent-teal);">→</span>
+                            <span>核心层 <span style="color:var(--accent-teal);font-weight:600;">(4 模块)</span></span><span style="color:var(--accent-teal);">→</span>
+                            <span>智能体层 <span style="color:var(--accent-teal);font-weight:600;">(4 个)</span></span><span style="color:var(--accent-teal);">→</span>
+                            <span>平台层 <span class="tag tag-teal" style="font-size:13px;">待验证</span></span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SLIDE 5: TRANSITION — Core Technology -->
+            <section class="slide" id="slide-5">
+                <div class="transition-slide">
+                    <div class="transition-bg"><img src="img/media-generation-dag-schedule-0-66a75f5b-5fd1-4ba4-b257-7239e8b52f92.webp" alt=""></div>
+                    <div class="transition-overlay"></div>
+                    <div class="transition-content">
+                        <div class="reveal transition-chapter-num">III</div>
+                        <div class="reveal transition-label">Core Technology</div>
+                        <h1 class="reveal transition-title">三大核心技术创新</h1>
+                        <p class="reveal transition-subtitle">异构协议翻译网关 · DAG 协同调度引擎 · 安全管控三位一体</p>
+                        <div class="reveal transition-deco"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SLIDE 6: AIP STANDARD -->
+            <section class="slide" id="slide-6">
+                <div class="slide-bg slide-bg-gradient slide-bg-geo slide-bg-dots"></div>
+                <div class="slide-inner">
+                    <div class="page-header reveal"><div class="page-badge page-badge-02">05</div><div class="page-title-group"><div class="page-title">AIP 国标遵循</div><div class="page-subtitle">基于 GB/Z 185 系列标准的实现</div></div></div>
+                    <div class="page-separator reveal"></div>
+                    <div class="split-layout">
+                        <div class="reveal-scale ai-illust-frame" style="min-height:0;"><img src="img/media-generation-aip-arch-0-651a24ae-70aa-4fc5-bcf8-2b87611299fb.webp" alt="AIP 三层架构"></div>
+                        <div style="display:flex;flex-direction:column;justify-content:center;gap:14px;">
+                            <h3 class="reveal" style="font-size:20px;color:var(--accent-teal);margin-bottom:4px;">AIP 交互子协议</h3>
+                            <div class="reveal protocol-card" style="border-left:4px solid var(--accent-blue);text-align:left;"><div class="protocol-card-name">ATR — 可信注册</div><div class="protocol-card-desc">Agent 注册、证书签发、身份可信链</div></div>
+                            <div class="reveal protocol-card" style="border-left:4px solid var(--accent-teal);text-align:left;"><div class="protocol-card-name">ADP — 发现服务</div><div class="protocol-card-desc">Agent 发现、能力查询、端点解析</div></div>
+                            <div class="reveal protocol-card" style="border-left:4px solid var(--accent-orange);text-align:left;"><div class="protocol-card-name">AIP — 交互协议</div><div class="protocol-card-desc">TaskCommand / TaskResult / TaskState</div></div>
+                            <div class="reveal" style="padding:14px 18px;border-radius:var(--radius-sm);background:rgba(42,168,181,0.06);border:1px solid rgba(42,168,181,0.12);display:flex;align-items:center;gap:16px;">
+                                <div><p style="font-size:13px;color:var(--accent-teal);font-weight:600;letter-spacing:2px;margin-bottom:4px;">BASED ON</p><p style="font-size:20px;font-weight:700;color:var(--text-primary);">ACPs-community <span style="font-size:14px;color:var(--text-secondary);font-weight:400;">v2.2.0</span></p></div>
+                                <span class="tag tag-green" style="margin-left:auto;">Mulan PSL v2</span>
+                            </div>
+                            <div class="reveal" style="display:flex;gap:8px;flex-wrap:wrap;">
+                                <span class="tag tag-blue">GB/Z 185</span><span class="tag tag-teal">7 部分</span><span class="tag tag-orange">ATR</span><span class="tag tag-blue">ADP</span><span class="tag tag-red">AIP</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SLIDE 7: REUSE VS INNOVATE -->
+            <section class="slide" id="slide-7">
+                <div class="slide-bg slide-bg-gradient slide-bg-geo slide-bg-lines"></div>
+                <div class="slide-inner">
+                    <div class="page-header reveal"><div class="page-badge page-badge-05">06</div><div class="page-title-group"><div class="page-title">复用 vs 自研对照</div><div class="page-subtitle">开源代码改造策略</div></div></div>
+                    <div class="page-separator reveal"></div>
+                    <div style="flex:1;display:flex;align-items:center;">
+                        <div class="two-col" style="gap:32px;">
+                            <div class="reveal card"><div class="bar-top bar-top-green"></div><h3 style="font-size:24px;color:var(--accent-green);margin-bottom:16px;margin-top:10px;">原生复用</h3><ul class="bullet-list"><li><strong style="color:var(--text-primary);">acps-sdk</strong> 协议刚性部分<br><span style="font-size:17px;">TaskCommand / TaskResult / TaskState 数据模型</span></li><li><strong style="color:var(--text-primary);">acps-sdk</strong> 调用范式<br><span style="font-size:17px;">AipRpcClient / Server 标准用法</span></li><li><strong style="color:var(--text-primary);">acps-cli</strong> ATR 注册链路<br><span style="font-size:17px;">agent save → submit → cert issue</span></li></ul></div>
+                            <div class="reveal card"><div class="bar-top bar-top-teal"></div><h3 style="font-size:24px;color:var(--accent-teal);margin-bottom:16px;margin-top:10px;">自主创新</h3><ul class="bullet-list"><li><strong style="color:var(--text-primary);">HeteroAdapter</strong> 异构适配器</li><li><strong style="color:var(--text-primary);">DagScheduler</strong> 调度引擎</li><li><strong style="color:var(--text-primary);">trust_guard</strong> 安全模块</li><li><strong style="color:var(--text-primary);">网关可观测性</strong><br><span style="font-size:17px;">/health · /audit · Swagger</span></li></ul></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SLIDE 8: HETERO GATEWAY -->
+            <section class="slide" id="slide-8">
+                <div class="slide-bg slide-bg-gradient slide-bg-geo"></div>
+                <div class="slide-inner">
+                    <div class="page-header reveal"><div class="page-badge page-badge-03">07</div><div class="page-title-group"><div class="page-title">异构协议翻译网关</div><div class="page-subtitle">HeteroAdapter 三步翻译流程</div></div></div>
+                    <div class="page-separator reveal"></div>
+                    <div class="split-layout-reverse">
+                        <div style="display:flex;flex-direction:column;justify-content:center;">
+                            <div class="reveal" style="margin-bottom:20px;">
+                                <h3 style="font-size:22px;margin-bottom:14px;color:var(--accent-teal);">三步翻译流程</h3>
+                                <div class="flow-step"><div class="num-badge" style="background:linear-gradient(135deg,#F2994A,#F5B041);">1</div><span style="font-size:21px;color:var(--text-secondary);"><strong style="color:var(--text-primary);">to_agent_card</strong> → AIP 标准名片</span></div>
+                                <div class="flow-step"><div class="num-badge" style="background:linear-gradient(135deg,#2AA8B5,#36C5D2);">2</div><span style="font-size:21px;color:var(--text-secondary);"><strong style="color:var(--text-primary);">translate_invoke</strong> → 原生协议请求</span></div>
+                                <div class="flow-step"><div class="num-badge" style="background:linear-gradient(135deg,#D9534F,#E0706D);">3</div><span style="font-size:21px;color:var(--text-secondary);"><strong style="color:var(--text-primary);">normalize_result</strong> → AIP 标准响应</span></div>
+                            </div>
+                            <div class="reveal" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;"><span class="tag tag-teal">MCP</span><span class="tag tag-orange">OpenAPI</span><span class="tag tag-red">自定义 HTTP</span></div>
+                            <p class="reveal" style="font-size:19px;color:var(--accent-teal);font-weight:600;">一次接入，统一调用</p>
+                        </div>
+                        <div class="reveal-scale ai-illust-frame" style="min-height:0;"><img src="img/media-generation-hetero-gateway-0-8f4192c7-cca2-4d48-a14e-e2e31e69479f.webp" alt="异构协议翻译网关"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SLIDE 9: DAG SCHEDULER -->
+            <section class="slide" id="slide-9">
+                <div class="slide-bg slide-bg-gradient slide-bg-dots"></div>
+                <div class="slide-inner">
+                    <div class="page-header reveal"><div class="page-badge page-badge-04">08</div><div class="page-title-group"><div class="page-title">DAG 协同调度引擎</div><div class="page-subtitle">拓扑排序 + 分层并行 + 三重容错</div></div></div>
+                    <div class="page-separator reveal"></div>
+                    <div class="split-layout">
+                        <div class="reveal-scale ai-illust-frame" style="min-height:0;"><img src="img/media-generation-dag-schedule-0-66a75f5b-5fd1-4ba4-b257-7239e8b52f92.webp" alt="DAG 协同调度" style="object-fit:contain;padding:12px;background:#fff;"></div>
+                        <div style="display:flex;flex-direction:column;justify-content:center;">
+                            <ul class="bullet-list reveal">
+                                <li><strong style="color:var(--text-primary);">Kahn 算法</strong>拓扑排序 + 环检测</li>
+                                <li><strong style="color:var(--text-primary);">asyncio.gather</strong> 同层节点分层并行</li>
+                                <li><strong style="color:var(--text-primary);">{node_id.key}</strong> 占位符数据传递</li>
+                                <li><strong style="color:var(--text-primary);">指数退避重试</strong> + 三态熔断器 + 超时控制</li>
+                                <li><strong style="color:var(--text-primary);">ExecutionTrace</strong> 导出 Mermaid / HTML</li>
+                            </ul>
+                            <div class="reveal" style="margin-top:20px;padding:16px 20px;border-radius:var(--radius-sm);background:rgba(37,99,235,0.06);border:1px solid rgba(37,99,235,0.12);">
+                                <p style="font-size:16px;color:var(--accent-blue);font-weight:600;margin-bottom:6px;">三重容错机制</p>
+                                <div style="display:flex;gap:12px;"><span class="tag tag-blue">重试</span><span class="tag tag-orange">熔断</span><span class="tag tag-red">超时</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SLIDE 10: SECURITY -->
+            <section class="slide" id="slide-10">
+                <div class="slide-bg slide-bg-gradient slide-bg-geo slide-bg-lines"></div>
+                <div class="slide-inner">
+                    <div class="page-header reveal"><div class="page-badge page-badge-01">09</div><div class="page-title-group"><div class="page-title">安全管控三位一体</div><div class="page-subtitle">鉴权防伪造 → 过滤防泄露 → 审计可追溯</div></div></div>
+                    <div class="page-separator reveal"></div>
+                    <div style="flex:1;display:flex;align-items:center;">
+                        <div class="three-col">
+                            <div class="reveal card" style="position:relative;"><div class="bar-top bar-top-teal"></div><h3 style="font-size:22px;margin-bottom:14px;color:var(--accent-teal);margin-top:10px;">Token 鉴权</h3><ul class="bullet-list" style="font-size:19px;"><li>HMAC-SHA256 签名</li><li>sub / iat / exp 嵌入</li><li>compare_digest 防时序攻击</li></ul></div>
+                            <div class="reveal card" style="position:relative;"><div class="bar-top bar-top-orange"></div><h3 style="font-size:22px;margin-bottom:14px;color:var(--accent-orange);margin-top:10px;">敏感词过滤</h3><ul class="bullet-list" style="font-size:19px;"><li>5 类敏感词双向过滤</li><li>政治 / 暴力 / 色情 / 联系方式 / 诈骗</li><li>命中替换 ***</li></ul></div>
+                            <div class="reveal card" style="position:relative;"><div class="bar-top bar-top-red"></div><h3 style="font-size:22px;margin-bottom:14px;color:var(--accent-red);margin-top:10px;">审计日志</h3><ul class="bullet-list" style="font-size:19px;"><li>caller / action / target / ok / detail</li><li>线程安全追加式写入</li><li>支持按调用者查询</li></ul></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SLIDE 11: REGISTRATION SEQUENCE -->
+            <section class="slide" id="slide-11">
+                <div class="slide-bg slide-bg-gradient slide-bg-geo"></div>
+                <div class="slide-inner">
+                    <div class="page-header reveal"><div class="page-badge page-badge-02">10</div><div class="page-title-group"><div class="page-title">注册—发现—互联时序</div><div class="page-subtitle">AIP 协议完整交互流程</div></div></div>
+                    <div class="page-separator reveal"></div>
+                    <div style="flex:1;display:flex;flex-direction:column;gap:16px;">
+                        <div class="reveal-scale img-frame" style="flex:1;min-height:0;max-height:560px;"><img src="img/aip_sequence.png" alt="AIP 注册发现互联时序图" style="width:100%;height:100%;object-fit:contain;"></div>
+                        <div class="reveal" style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;font-size:16px;color:var(--text-secondary);">
+                            <span style="font-weight:600;">auth login</span><span style="color:var(--accent-teal);">→</span>
+                            <span style="font-weight:600;">agent save</span><span style="color:var(--accent-teal);">→</span>
+                            <span style="color:var(--accent-red);font-weight:600;">管理员审核</span><span style="color:var(--accent-teal);">→</span>
+                            <span style="font-weight:600;">agent submit</span><span style="color:var(--accent-teal);">→</span>
+                            <span style="font-weight:600;">cert eab</span><span style="color:var(--accent-teal);">→</span>
+                            <span style="font-weight:600;">cert issue</span><span style="color:var(--accent-teal);">→</span>
+                            <span style="font-weight:600;">ADP 发现</span><span style="color:var(--accent-teal);">→</span>
+                            <span style="font-weight:600;">Direct RPC</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SLIDE 12: WUTONG INTEGRATION -->
+            <section class="slide" id="slide-12">
+                <div class="slide-bg slide-bg-gradient slide-bg-geo slide-bg-dots"></div>
+                <div class="slide-inner">
+                    <div class="page-header reveal"><div class="page-badge page-badge-03">11</div><div class="page-title-group"><div class="page-title">梧桐平台接入方案</div><div class="page-subtitle">四步完成平台集成</div></div></div>
+                    <div class="page-separator reveal"></div>
+                    <div style="flex:1;display:flex;align-items:center;">
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:22px;max-width:1400px;margin:0 auto;">
+                            <div class="reveal card card-left-bar card-left-bar-teal"><p style="font-size:15px;color:var(--accent-teal);font-weight:700;margin-bottom:6px;">STEP 1</p><h3 style="font-size:22px;margin-bottom:8px;">WutongConfig</h3><p style="font-size:18px;color:var(--text-secondary);">4 环境变量配置管理<br><span style="font-size:15px;color:var(--text-muted);">占位 localhost 待 QQ 群文档确认</span></p></div>
+                            <div class="reveal card card-left-bar card-left-bar-orange"><p style="font-size:15px;color:var(--accent-orange);font-weight:700;margin-bottom:6px;">STEP 2</p><h3 style="font-size:22px;margin-bottom:8px;">build_acs</h3><p style="font-size:18px;color:var(--text-secondary);">AgentCard → 标准 ACS JSON<br><span style="font-size:15px;color:var(--text-muted);">skills + endPoints JSONRPC/mTLS</span></p></div>
+                            <div class="reveal card card-left-bar card-left-bar-red"><p style="font-size:15px;color:var(--accent-red);font-weight:700;margin-bottom:6px;">STEP 3</p><h3 style="font-size:22px;margin-bottom:8px;">discover_agents</h3><p style="font-size:18px;color:var(--text-secondary);">DiscoveryRequest → POST 发现<br><span style="font-size:15px;color:var(--text-muted);">{discovery_url}/acps-adp-v2/discover</span></p></div>
+                            <div class="reveal card card-left-bar card-left-bar-green"><p style="font-size:15px;color:var(--accent-green);font-weight:700;margin-bottom:6px;">STEP 4</p><h3 style="font-size:22px;margin-bottom:8px;">invoke_remote</h3><p style="font-size:18px;color:var(--text-secondary);">AipRpcClient Direct RPC<br><span style="font-size:15px;color:var(--text-muted);">轮询 60×1s，超时自动取消</span></p></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SLIDE 13: WUTONG VERIFICATION -->
+            <section class="slide" id="slide-13">
+                <div class="slide-bg slide-bg-gradient slide-bg-geo"></div>
+                <div class="slide-inner">
+                    <div class="page-header reveal"><div class="page-badge page-badge-04">12</div><div class="page-title-group"><div class="page-title">梧桐平台验证效果</div><div class="page-subtitle">平台验证进行中，截图待替换</div></div></div>
+                    <div class="page-separator reveal"></div>
+                    <div style="flex:1;display:flex;align-items:center;">
+                        <div class="two-col" style="gap:36px;">
+                            <div class="reveal-scale img-frame" style="max-height:500px;"><img src="img/wutong_placeholder.png" alt="梧桐平台验证进行中" style="width:100%;height:100%;object-fit:contain;"></div>
+                            <div style="display:flex;flex-direction:column;justify-content:center;gap:16px;">
+                                <div class="reveal card card-left-bar card-left-bar-teal"><h3 style="font-size:22px;color:var(--accent-teal);margin-bottom:10px;">代码已就绪</h3><p style="font-size:19px;color:var(--text-secondary);line-height:1.6;">wutong.py 基于 acps-sdk 实现，注册、发现、互联功能代码完备</p></div>
+                                <div class="reveal card card-left-bar card-left-bar-red"><h3 style="font-size:20px;color:var(--accent-red);margin-bottom:8px;">外部依赖</h3><p style="font-size:18px;color:var(--text-secondary);line-height:1.6;">ATR 管理员审核为外部依赖，耗时不定</p></div>
+                                <div class="reveal card card-left-bar card-left-bar-navy"><h3 style="font-size:20px;color:var(--text-secondary);margin-bottom:8px;">待确认</h3><p style="font-size:18px;color:var(--text-secondary);line-height:1.6;">endpoint 待 QQ 群（1102086449）文档确认后执行端到端验证</p></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SLIDE 14: DEMO AGENTS -->
+            <section class="slide" id="slide-14">
+                <div class="slide-bg slide-bg-gradient slide-bg-geo slide-bg-lines"></div>
+                <div class="slide-inner">
+                    <div class="page-header reveal"><div class="page-badge page-badge-05">13</div><div class="page-title-group"><div class="page-title">4 个校园演示智能体</div><div class="page-subtitle">覆盖课程、图书馆、自习室、秋招场景</div></div></div>
+                    <div class="page-separator reveal"></div>
+                    <div style="flex:1;display:flex;align-items:center;">
+                        <div class="four-col">
+                            <div class="reveal card" style="text-align:center;"><div class="bar-top bar-top-orange"></div><svg width="64" height="64" viewBox="0 0 72 72" style="margin:14px auto 10px;" fill="none"><rect width="72" height="72" rx="18" fill="rgba(242,153,74,0.08)"/><rect x="18" y="24" width="36" height="26" rx="3" stroke="#F2994A" stroke-width="2.5"/><path d="M26 34h20M26 40h14" stroke="#F2994A" stroke-width="2" stroke-linecap="round"/><circle cx="36" cy="18" r="6" stroke="#F2994A" stroke-width="2.5"/><circle cx="52" cy="22" r="8" fill="#2563EB" opacity="0.15" stroke="#2563EB" stroke-width="1.5"/><text x="52" y="26" text-anchor="middle" fill="#2563EB" font-size="9" font-weight="700">AI</text></svg><h3 style="font-size:22px;margin-bottom:8px;">course-qa</h3><p style="font-size:17px;color:var(--accent-orange);margin-bottom:8px;font-weight:600;">课程问答</p><p style="font-size:16px;color:var(--text-secondary);line-height:1.5;">LLM+规则混合架构<br>未配置 LLM 自动降级规则引擎</p></div>
+                            <div class="reveal card" style="text-align:center;"><div class="bar-top bar-top-teal"></div><svg width="64" height="64" viewBox="0 0 72 72" style="margin:14px auto 10px;" fill="none"><rect width="72" height="72" rx="18" fill="rgba(42,168,181,0.08)"/><rect x="20" y="22" width="32" height="30" rx="2" stroke="#2AA8B5" stroke-width="2.5"/><path d="M20 32h32M20 42h32" stroke="#2AA8B5" stroke-width="2"/><circle cx="54" cy="20" r="8" fill="#2563EB" opacity="0.12" stroke="#2563EB" stroke-width="1.5"/><text x="54" y="24" text-anchor="middle" fill="#2563EB" font-size="9" font-weight="700">AI</text></svg><h3 style="font-size:22px;margin-bottom:8px;">library</h3><p style="font-size:17px;color:var(--accent-teal);margin-bottom:8px;font-weight:600;">图书馆检索</p><p style="font-size:16px;color:var(--text-secondary);line-height:1.5;">按书名/关键词检索<br>返回书名/作者/馆藏状态</p></div>
+                            <div class="reveal card" style="text-align:center;"><div class="bar-top bar-top-red"></div><svg width="64" height="64" viewBox="0 0 72 72" style="margin:14px auto 10px;" fill="none"><rect width="72" height="72" rx="18" fill="rgba(217,83,79,0.08)"/><rect x="20" y="28" width="14" height="10" rx="2" stroke="#D9534F" stroke-width="2.5"/><rect x="38" y="28" width="14" height="10" rx="2" stroke="#D9534F" stroke-width="2.5"/><path d="M27 38v8M45 38v8" stroke="#D9534F" stroke-width="2" stroke-linecap="round"/><circle cx="54" cy="22" r="8" fill="#2563EB" opacity="0.12" stroke="#2563EB" stroke-width="1.5"/><text x="54" y="26" text-anchor="middle" fill="#2563EB" font-size="9" font-weight="700">AI</text></svg><h3 style="font-size:22px;margin-bottom:8px;">study-room</h3><p style="font-size:17px;color:var(--accent-red);margin-bottom:8px;font-weight:600;">自习室预约</p><p style="font-size:16px;color:var(--text-secondary);line-height:1.5;">按教室 ID 查询<br>可用状态</p></div>
+                            <div class="reveal card" style="text-align:center;"><div class="bar-top bar-top-green"></div><svg width="64" height="64" viewBox="0 0 72 72" style="margin:14px auto 10px;" fill="none"><rect width="72" height="72" rx="18" fill="rgba(39,174,96,0.08)"/><rect x="22" y="30" width="28" height="18" rx="2" stroke="#27AE60" stroke-width="2.5"/><path d="M30 30v-4a6 6 0 0112 0v4" stroke="#27AE60" stroke-width="2.5" fill="none"/><path d="M22 38h28" stroke="#27AE60" stroke-width="2"/><circle cx="54" cy="22" r="8" fill="#2563EB" opacity="0.12" stroke="#2563EB" stroke-width="1.5"/><text x="54" y="26" text-anchor="middle" fill="#2563EB" font-size="9" font-weight="700">AI</text></svg><h3 style="font-size:22px;margin-bottom:8px;">career</h3><p style="font-size:17px;color:var(--accent-green);margin-bottom:8px;font-weight:600;">秋招资讯</p><p style="font-size:16px;color:var(--text-secondary);line-height:1.5;">按行业/岗位关键词<br>返回招聘信息摘要</p></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SLIDE 15: TEST RESULTS -->
+            <section class="slide" id="slide-15">
+                <div class="slide-bg slide-bg-gradient slide-bg-geo slide-bg-lines"></div>
+                <div class="slide-inner">
+                    <div class="page-header reveal"><div class="page-badge page-badge-01">14</div><div class="page-title-group"><div class="page-title">应用成效 — 测试覆盖</div><div class="page-subtitle"><span id="stat-tests-label">143 测试全绿</span></div></div></div>
+                    <div class="page-separator reveal"></div>
+                    <div style="flex:1;display:flex;align-items:center;">
+                        <div class="two-col" style="gap:36px;">
+                            <div style="display:flex;flex-direction:column;justify-content:center;">
+                                <div class="reveal" style="display:flex;gap:36px;margin-bottom:28px;">
+                                    <div style="text-align:center;"><div class="stat-num stat-num-green" id="stat-tests">143</div><div class="stat-label">测试用例</div></div>
+                                    <div style="text-align:center;"><div class="stat-num stat-num-red" style="font-size:56px;">0</div><div class="stat-label">失败</div></div>
+                                    <div style="text-align:center;"><div class="stat-num stat-num-teal" style="font-size:56px;" id="stat-test-time">0.46s</div><div class="stat-label">总耗时</div></div>
+                                </div>
+                                <div class="reveal" style="margin-bottom:20px;"><div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span style="font-size:17px;color:var(--text-primary);font-weight:600;">test_fullchain</span><span style="font-size:17px;color:var(--accent-blue);font-weight:700;" id="bar-fullchain-val">32</span></div><div class="progress-bar-wrap"><div class="progress-bar-fill" id="bar-fullchain" style="width:0%;background:linear-gradient(90deg,#2563EB,#3B82F6);"></div></div></div>
+                                <div class="reveal" style="margin-bottom:20px;"><div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span style="font-size:17px;color:var(--text-primary);font-weight:600;">test_wutong</span><span style="font-size:17px;color:var(--accent-teal);font-weight:700;" id="bar-wutong-val">28</span></div><div class="progress-bar-wrap"><div class="progress-bar-fill" id="bar-wutong" style="width:0%;background:linear-gradient(90deg,#2AA8B5,#36C5D2);"></div></div></div>
+                                <div class="reveal" style="margin-bottom:20px;"><div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span style="font-size:17px;color:var(--text-primary);font-weight:600;">test_llm</span><span style="font-size:17px;color:var(--accent-orange);font-weight:700;" id="bar-llm-val">16</span></div><div class="progress-bar-wrap"><div class="progress-bar-fill" id="bar-llm" style="width:0%;background:linear-gradient(90deg,#F2994A,#F5B041);"></div></div></div>
+                                <div class="reveal"><div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span style="font-size:17px;color:var(--text-primary);font-weight:600;">test_observability</span><span style="font-size:17px;color:var(--accent-red);font-weight:700;" id="bar-obs-val">16</span></div><div class="progress-bar-wrap"><div class="progress-bar-fill" id="bar-obs" style="width:0%;background:linear-gradient(90deg,#D9534F,#E0706D);"></div></div></div>
+                            </div>
+                            <div class="reveal-scale" style="background:var(--bg-card);border-radius:var(--radius-md);box-shadow:var(--shadow-card);border:1px solid #E5EAF2;padding:24px;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+                                <svg id="test-svg-chart" viewBox="0 0 560 380" width="100%" style="max-height:420px;">
+                                    <text x="280" y="28" text-anchor="middle" font-size="18" font-weight="700" fill="#1B2F4B" font-family="'Noto Sans SC',sans-serif"><tspan id="svg-chart-title">143 用例全部通过 (0.46s)</tspan></text>
+                                    <line x1="70" y1="50" x2="70" y2="310" stroke="#E5E7EB" stroke-width="1"/><line x1="70" y1="310" x2="540" y2="310" stroke="#E5E7EB" stroke-width="1"/>
+                                    <text x="60" y="314" text-anchor="end" font-size="13" fill="#9CA3AF" font-family="'Noto Sans SC',sans-serif">0</text>
+                                    <text x="60" y="262" text-anchor="end" font-size="13" fill="#9CA3AF" font-family="'Noto Sans SC',sans-serif">10</text>
+                                    <text x="60" y="210" text-anchor="end" font-size="13" fill="#9CA3AF" font-family="'Noto Sans SC',sans-serif">20</text>
+                                    <text x="60" y="158" text-anchor="end" font-size="13" fill="#9CA3AF" font-family="'Noto Sans SC',sans-serif">30</text>
+                                    <text x="60" y="106" text-anchor="end" font-size="13" fill="#9CA3AF" font-family="'Noto Sans SC',sans-serif">40</text>
+                                    <line x1="70" y1="260" x2="540" y2="260" stroke="#F3F4F6" stroke-width="1"/><line x1="70" y1="208" x2="540" y2="208" stroke="#F3F4F6" stroke-width="1"/><line x1="70" y1="156" x2="540" y2="156" stroke="#F3F4F6" stroke-width="1"/><line x1="70" y1="104" x2="540" y2="104" stroke="#F3F4F6" stroke-width="1"/>
+                                    <text x="20" y="180" text-anchor="middle" font-size="13" fill="#6B7280" font-family="'Noto Sans SC',sans-serif" transform="rotate(-90,20,180)">用例数</text>
+                                    <rect id="svg-bar-0" x="110" y="310" width="80" height="0" rx="4" fill="#2563EB" opacity="0.85"/>
+                                    <rect id="svg-bar-1" x="220" y="310" width="80" height="0" rx="4" fill="#2AA8B5" opacity="0.85"/>
+                                    <rect id="svg-bar-2" x="330" y="310" width="80" height="0" rx="4" fill="#F2994A" opacity="0.85"/>
+                                    <rect id="svg-bar-3" x="440" y="310" width="80" height="0" rx="4" fill="#D9534F" opacity="0.85"/>
+                                    <text id="svg-val-0" x="150" y="310" text-anchor="middle" font-size="16" font-weight="700" fill="#1B2F4B" font-family="'Noto Sans SC',sans-serif"></text>
+                                    <text id="svg-val-1" x="260" y="310" text-anchor="middle" font-size="16" font-weight="700" fill="#1B2F4B" font-family="'Noto Sans SC',sans-serif"></text>
+                                    <text id="svg-val-2" x="370" y="310" text-anchor="middle" font-size="16" font-weight="700" fill="#1B2F4B" font-family="'Noto Sans SC',sans-serif"></text>
+                                    <text id="svg-val-3" x="480" y="310" text-anchor="middle" font-size="16" font-weight="700" fill="#1B2F4B" font-family="'Noto Sans SC',sans-serif"></text>
+                                    <text x="150" y="332" text-anchor="middle" font-size="13" fill="#6B7280" font-family="'Noto Sans SC',sans-serif">test_fullchain</text>
+                                    <text x="260" y="332" text-anchor="middle" font-size="13" fill="#6B7280" font-family="'Noto Sans SC',sans-serif">test_wutong</text>
+                                    <text x="370" y="332" text-anchor="middle" font-size="13" fill="#6B7280" font-family="'Noto Sans SC',sans-serif">test_llm</text>
+                                    <text x="480" y="332" text-anchor="middle" font-size="13" fill="#6B7280" font-family="'Noto Sans SC',sans-serif">test_observability</text>
+                                    <text x="305" y="360" text-anchor="middle" font-size="13" fill="#6B7280" font-family="'Noto Sans SC',sans-serif">测试文件</text>
+                                    <text id="svg-chart-footer" x="305" y="378" text-anchor="middle" font-size="12" fill="#9CA3AF" font-family="'Noto Sans SC',sans-serif">合计：143 用例 · 0 失败 · 耗时 0.46s</text>
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="reveal result-banner" id="banner-tests">143 测试全绿 | 10 个 API 全覆盖</div>
+                </div>
+            </section>
+
+            <!-- SLIDE 16: PERFORMANCE -->
+            <section class="slide" id="slide-16">
+                <div class="slide-bg slide-bg-gradient slide-bg-geo"></div>
+                <div class="slide-inner">
+                    <div class="page-header reveal"><div class="page-badge page-badge-02">15</div><div class="page-title-group"><div class="page-title">应用成效 — 性能数据</div><div class="page-subtitle">本地 TestClient 实测数据</div></div></div>
+                    <div class="page-separator reveal"></div>
+                    <div style="flex:1;display:flex;flex-direction:column;justify-content:center;">
+                        <div class="reveal" style="margin-bottom:28px;">
+                            <table class="data-table">
+                                <thead><tr><th>指标</th><th>平均值</th><th>P95</th><th>条件</th></tr></thead>
+                                <tbody>
+                                    <tr><td style="color:var(--text-primary);font-weight:600;">/invoke 调用时延</td><td><span style="color:var(--accent-orange);font-size:26px;font-weight:900;" id="stat-invoke-avg">8.31ms</span></td><td><span style="color:var(--accent-orange);font-size:26px;font-weight:900;" id="stat-invoke-p95">16.56ms</span></td><td>本地 TestClient</td></tr>
+                                    <tr><td style="color:var(--text-primary);font-weight:600;">/task 调度时延</td><td><span style="color:var(--accent-teal);font-size:26px;font-weight:900;" id="stat-task-avg">0.23ms</span></td><td><span style="color:#9AA0A6;font-size:26px;font-weight:900;">—</span></td><td>本地 TestClient</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="reveal" style="display:flex;gap:28px;justify-content:center;margin-bottom:20px;">
+                            <div class="card" style="text-align:center;padding:22px 44px;"><div style="font-size:17px;color:var(--text-secondary);margin-bottom:6px;">源码规模</div><div class="stat-num stat-num-navy" style="font-size:46px;" id="stat-code">3,393</div><div class="stat-label">行 Python</div></div>
+                            <div class="card" style="text-align:center;padding:22px 44px;"><div style="font-size:17px;color:var(--text-secondary);margin-bottom:6px;">RESTful API</div><div class="stat-num stat-num-teal" style="font-size:46px;" id="stat-apis">10</div><div class="stat-label">个接口</div></div>
+                            <div class="card" style="text-align:center;padding:22px 44px;"><div style="font-size:17px;color:var(--text-secondary);margin-bottom:6px;">演示智能体</div><div class="stat-num stat-num-orange" style="font-size:46px;" id="stat-agents">4</div><div class="stat-label">个校园场景</div></div>
+                        </div>
+                        <div class="reveal" style="text-align:center;padding:18px;background:rgba(242,153,74,0.08);border-radius:var(--radius-sm);border-left:4px solid var(--accent-orange);"><p style="font-size:17px;color:var(--accent-orange);font-weight:600;">* 本地 TestClient 实测（metrics_sample.json），生产环境时延待测</p></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SLIDE 17: DEPLOYMENT -->
+            <section class="slide" id="slide-17">
+                <div class="slide-bg slide-bg-gradient slide-bg-geo slide-bg-dots"></div>
+                <div class="slide-inner">
+                    <div class="page-header reveal"><div class="page-badge page-badge-03">16</div><div class="page-title-group"><div class="page-title">一键部署</div><div class="page-subtitle">Docker 三步部署 + 自动化脚本</div></div></div>
+                    <div class="page-separator reveal"></div>
+                    <div style="flex:1;display:flex;flex-direction:column;justify-content:center;">
+                        <div class="reveal card" style="margin-bottom:28px;padding:32px 44px;">
+                            <p style="font-size:17px;color:var(--accent-teal);margin-bottom:16px;font-weight:700;">Docker 三步部署</p>
+                            <div style="display:flex;gap:40px;">
+                                <div style="display:flex;align-items:center;gap:14px;"><div class="num-badge" style="background:linear-gradient(135deg,#F2994A,#F5B041);">1</div><span style="font-size:19px;color:var(--text-secondary);font-weight:600;">pip install -r requirements.txt</span></div>
+                                <div style="display:flex;align-items:center;gap:14px;"><div class="num-badge" style="background:linear-gradient(135deg,#2AA8B5,#36C5D2);">2</div><span style="font-size:19px;color:var(--text-secondary);font-weight:600;">uvicorn gateway.app:app</span></div>
+                                <div style="display:flex;align-items:center;gap:14px;"><div class="num-badge" style="background:linear-gradient(135deg,#D9534F,#E0706D);">3</div><span style="font-size:19px;color:var(--text-secondary);font-weight:600;">python -m pytest tests/ -v</span></div>
+                            </div>
+                        </div>
+                        <div class="two-col" style="gap:28px;">
+                            <div class="reveal card card-left-bar card-left-bar-teal"><h3 style="font-size:22px;margin-bottom:14px;color:var(--accent-teal);">deploy.sh 自动化</h3><ul class="bullet-list" style="font-size:19px;"><li>Python 版本检查（≥ 3.11）</li><li>依赖自动安装</li><li>启动生产服务</li><li>可选部署后验证</li></ul></div>
+                            <div class="reveal card card-left-bar card-left-bar-orange"><h3 style="font-size:22px;margin-bottom:14px;color:var(--accent-orange);">容器化支持</h3><ul class="bullet-list" style="font-size:19px;"><li>Dockerfile（python:3.12-slim）</li><li>docker-compose.yml</li><li>Swagger 自动文档</li><li>/health 健康检查端点</li></ul></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SLIDE 18: IMPLEMENTATION FLOW -->
+            <section class="slide" id="slide-18">
+                <div class="slide-bg slide-bg-gradient slide-bg-geo"></div>
+                <div class="slide-inner">
+                    <div class="page-header reveal"><div class="page-badge page-badge-04">17</div><div class="page-title-group"><div class="page-title">五阶段实施流程</div><div class="page-subtitle">从需求拆解到联调测试</div></div></div>
+                    <div class="page-separator reveal"></div>
+                    <div style="flex:1;display:flex;flex-direction:column;gap:16px;">
+                        <div class="reveal-scale img-frame" style="flex:1;min-height:0;max-height:500px;"><img src="img/impl_flow.png" alt="五阶段实施流程" style="width:100%;height:100%;object-fit:contain;"></div>
+                        <div class="reveal" style="display:flex;gap:10px;justify-content:center;font-size:16px;color:var(--text-secondary);flex-wrap:wrap;">
+                            <span style="padding:7px 14px;border-radius:8px;background:rgba(42,168,181,0.10);color:var(--accent-teal);font-weight:600;">需求拆解</span><span style="color:var(--accent-teal);">→</span>
+                            <span style="padding:7px 14px;border-radius:8px;background:rgba(242,153,74,0.10);color:var(--accent-orange);font-weight:600;">开源适配</span><span style="color:var(--accent-teal);">→</span>
+                            <span style="padding:7px 14px;border-radius:8px;background:rgba(217,83,79,0.10);color:var(--accent-red);font-weight:600;">AIP 开发</span><span style="color:var(--accent-teal);">→</span>
+                            <span style="padding:7px 14px;border-radius:8px;background:rgba(39,174,96,0.10);color:var(--accent-green);font-weight:600;">梧桐对接</span><span style="color:var(--accent-teal);">→</span>
+                            <span style="padding:7px 14px;border-radius:8px;background:rgba(27,47,75,0.10);color:var(--accent-navy);font-weight:600;">联调测试</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SLIDE 19: SUMMARY & OUTLOOK -->
+            <section class="slide" id="slide-19">
+                <div class="slide-bg slide-bg-gradient slide-bg-geo slide-bg-lines"></div>
+                <div class="slide-inner">
+                    <div class="page-header reveal"><div class="page-badge page-badge-05">18</div><div class="page-title-group"><div class="page-title">创新总结与展望</div><div class="page-subtitle">核心创新点 · 成功经验 · 未来规划</div></div></div>
+                    <div class="page-separator reveal"></div>
+                    <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:20px;">
+                        <div class="three-col reveal">
+                            <div class="card" style="text-align:center;padding:20px 24px;"><div class="bar-top bar-top-teal"></div><h3 style="font-size:20px;color:var(--accent-teal);margin-bottom:8px;margin-top:8px;">异构协议翻译网关</h3><p style="font-size:16px;color:var(--text-secondary);line-height:1.5;">协议适应新范式<br>一次接入，统一调用</p></div>
+                            <div class="card" style="text-align:center;padding:20px 24px;"><div class="bar-top bar-top-orange"></div><h3 style="font-size:20px;color:var(--accent-orange);margin-bottom:8px;margin-top:8px;">DAG 协同调度引擎</h3><p style="font-size:16px;color:var(--text-secondary);line-height:1.5;">拓扑排序 + 分层并行<br>三重容错调度</p></div>
+                            <div class="card" style="text-align:center;padding:20px 24px;"><div class="bar-top bar-top-red"></div><h3 style="font-size:20px;color:var(--accent-red);margin-bottom:8px;margin-top:8px;">安全管控闭环</h3><p style="font-size:16px;color:var(--text-secondary);line-height:1.5;">鉴权 → 过滤 → 审计<br>三位一体</p></div>
+                        </div>
+                        <div class="two-col" style="gap:28px;">
+                            <div class="reveal card card-left-bar card-left-bar-green"><h3 style="font-size:22px;color:var(--accent-green);margin-bottom:14px;">成功经验</h3><ul class="bullet-list" style="font-size:19px;"><li>协议刚性部分复用官方 SDK</li><li>自研聚焦创新层</li><li>可观测性先行支撑量化报告</li></ul></div>
+                            <div class="reveal card card-left-bar card-left-bar-teal">
+                                <h3 style="font-size:22px;color:var(--accent-teal);margin-bottom:14px;">未来规划</h3>
+                                <div style="margin-bottom:12px;"><p style="font-size:16px;color:var(--accent-teal);font-weight:700;margin-bottom:2px;">短期</p><p style="font-size:17px;color:var(--text-secondary);">完成梧桐平台验证，补全验证场景</p></div>
+                                <div style="margin-bottom:12px;"><p style="font-size:16px;color:var(--accent-orange);font-weight:700;margin-bottom:2px;">中期</p><p style="font-size:17px;color:var(--text-secondary);">RAG 知识库接入、新增校园智能体</p></div>
+                                <div><p style="font-size:16px;color:var(--accent-red);font-weight:700;margin-bottom:2px;">长期</p><p style="font-size:17px;color:var(--text-secondary);">跨校联盟链式互联、商业化 SaaS</p></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SLIDE 20: THANK YOU -->
+            <section class="slide" id="slide-20">
+                <div class="slide-bg thankyou-bg"></div>
+                <div class="slide-inner" style="justify-content:center; align-items:center; text-align:center;">
+                    <div style="position:relative;z-index:2;max-width:1100px;">
+                        <div class="reveal" style="font-size:17px;color:rgba(147,197,253,0.8);font-weight:600;letter-spacing:4px;margin-bottom:28px;">THANK YOU</div>
+                        <div class="reveal" style="width:80px;height:3px;background:linear-gradient(90deg,var(--accent-blue),var(--accent-orange));margin:0 auto 28px;border-radius:2px;"></div>
+                        <h1 class="reveal" style="font-size:76px;margin-bottom:20px;color:#FFFFFF;">感谢聆听</h1>
+                        <p class="reveal" style="font-size:36px;color:#93C5FD;font-weight:700;margin-bottom:32px;">智枢 CampusHub</p>
+                        <p class="reveal" style="font-size:22px;color:rgba(203,213,225,0.8);margin-bottom:40px;">基于 AIP 国标的校园多智能体协同服务中枢</p>
+                        <div class="reveal" style="display:flex;gap:16px;justify-content:center;margin-bottom:40px;">
+                            <span class="tag tag-green" style="font-size:17px;padding:8px 18px;" id="thank-tests">143 项测试全绿</span>
+                            <span class="tag tag-navy" style="font-size:17px;padding:8px 18px;background:rgba(27,47,75,0.3);color:#93C5FD;" id="thank-code">3,393 行源码</span>
+                            <span class="tag tag-orange" style="font-size:17px;padding:8px 18px;">Docker 一键部署</span>
+                        </div>
+                        <div class="reveal" style="width:80px;height:3px;background:linear-gradient(90deg,var(--accent-blue),var(--accent-orange));margin:0 auto 28px;border-radius:2px;"></div>
+                        <div class="reveal result-banner" style="margin-top:0;max-width:700px;margin-left:auto;margin-right:auto;">基于 AIP 国标 · 校园多智能体协同服务中枢</div>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <div class="edit-hotzone" id="editHotzone"></div>
+    <button class="edit-toggle" id="editToggle" title="编辑模式 (E)">&#9998;</button>
+    <div class="slide-counter" id="slideCounter">1 / 20</div>
+
+    <script>
+        const DATA = {
+            testCount: 143, codeLines: 3393, apiCount: 10, agentCount: 4,
+            testTime: '0.46s', invokeAvg: '8.31ms', invokeP95: '16.56ms', taskAvg: '0.23ms',
+            testSuites: [
+                { name: 'test_fullchain', count: 32, color: '#2563EB' },
+                { name: 'test_wutong', count: 28, color: '#2AA8B5' },
+                { name: 'test_llm', count: 16, color: '#F2994A' },
+                { name: 'test_observability', count: 16, color: '#D9534F' },
+            ]
+        };
+
+        class SlidePresentation {
+            constructor() {
+                this.slides = document.querySelectorAll('.slide');
+                this.currentSlide = 0;
+                this.stage = document.getElementById('deckStage');
+                this.counter = document.getElementById('slideCounter');
+                this.setupStageScale(); this.setupKeyboardNav(); this.setupTouchNav(); this.showSlide(0);
+            }
+            setupStageScale() {
+                const scale = () => {
+                    const f = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+                    this.stage.style.transform = `translate(${(window.innerWidth - 1920*f)/2}px, ${(window.innerHeight - 1080*f)/2}px) scale(${f})`;
+                };
+                scale(); window.addEventListener('resize', scale);
+            }
+            setupKeyboardNav() {
+                document.addEventListener('keydown', (e) => {
+                    if (e.target.getAttribute('contenteditable') === 'true') return;
+                    switch(e.key) {
+                        case 'ArrowRight': case 'ArrowDown': case ' ': case 'PageDown': e.preventDefault(); this.next(); break;
+                        case 'ArrowLeft': case 'ArrowUp': case 'PageUp': e.preventDefault(); this.prev(); break;
+                        case 'Home': e.preventDefault(); this.showSlide(0); break;
+                        case 'End': e.preventDefault(); this.showSlide(this.slides.length - 1); break;
+                    }
+                });
+            }
+            setupTouchNav() {
+                let sx=0, sy=0;
+                document.addEventListener('touchstart', (e) => { sx=e.touches[0].clientX; sy=e.touches[0].clientY; }, {passive:true});
+                document.addEventListener('touchend', (e) => { const dx=e.changedTouches[0].clientX-sx, dy=e.changedTouches[0].clientY-sy; if(Math.abs(dx)>Math.abs(dy)&&Math.abs(dx)>50){dx<0?this.next():this.prev();} }, {passive:true});
+                let wl=false;
+                document.addEventListener('wheel', (e) => { if(wl)return; wl=true; setTimeout(()=>wl=false,800); e.deltaY>0?this.next():this.prev(); }, {passive:true});
+            }
+            next() { this.showSlide(this.currentSlide + 1); }
+            prev() { this.showSlide(this.currentSlide - 1); }
+            showSlide(i) {
+                this.currentSlide = Math.max(0, Math.min(i, this.slides.length - 1));
+                this.slides.forEach((s, j) => { s.classList.toggle('active', j===this.currentSlide); s.classList.toggle('visible', j===this.currentSlide); });
+                this.counter.textContent = `${this.currentSlide + 1} / ${this.slides.length}`;
+                if (this.currentSlide === 14) setTimeout(animateSlide15, 300);
+            }
+        }
+        const presentation = new SlidePresentation();
+        window.deck = { show: (i) => presentation.showSlide(i) };
+
+        class InlineEditor {
+            constructor() { this.isActive=false; this.toggle=document.getElementById('editToggle'); this.hotzone=document.getElementById('editHotzone'); this.hideTimeout=null; this.setupHotzone(); this.setupKeyboard(); }
+            setupHotzone() {
+                const show=()=>{clearTimeout(this.hideTimeout);this.toggle.classList.add('show');};
+                const hide=()=>{this.hideTimeout=setTimeout(()=>{if(!this.isActive)this.toggle.classList.remove('show');},400);};
+                this.hotzone.addEventListener('mouseenter',show); this.hotzone.addEventListener('mouseleave',hide);
+                this.toggle.addEventListener('mouseenter',show); this.toggle.addEventListener('mouseleave',hide);
+                this.hotzone.addEventListener('click',()=>this.toggleEditMode()); this.toggle.addEventListener('click',()=>this.toggleEditMode());
+            }
+            setupKeyboard() { document.addEventListener('keydown',(e)=>{if((e.key==='e'||e.key==='E')&&!e.target.getAttribute('contenteditable')){this.toggleEditMode();}}); }
+            toggleEditMode() {
+                this.isActive=!this.isActive; this.toggle.classList.toggle('active',this.isActive);
+                document.querySelectorAll('h1,h2,h3,p,li,span,td,th').forEach(el=>{if(el.closest('.slide')&&!el.closest('.page-header')&&el.children.length===0){el.contentEditable=this.isActive?'true':'false';}});
+                this.toggle.title=this.isActive?'保存并退出 (Ctrl+S)':'编辑模式 (E)';
+            }
+        }
+        const editor = new InlineEditor();
+
+        function populateData() {
+            const fmt=(n)=>n.toLocaleString(); const set=(id,val)=>{const el=document.getElementById(id);if(el)el.textContent=val;};
+            set('stat-tests',DATA.testCount); set('stat-tests-label',DATA.testCount+' 测试全绿');
+            set('stat-code',fmt(DATA.codeLines)); set('stat-apis',DATA.apiCount); set('stat-agents',DATA.agentCount);
+            set('stat-test-time',DATA.testTime); set('stat-invoke-avg',DATA.invokeAvg); set('stat-invoke-p95',DATA.invokeP95); set('stat-task-avg',DATA.taskAvg);
+            set('banner-tests',DATA.testCount+' 测试全绿 | '+DATA.apiCount+' 个 API 全覆盖');
+            set('cover-tests',DATA.testCount+' 测试全绿'); set('cover-apis',DATA.apiCount+' 个 API');
+            set('thank-tests',DATA.testCount+' 项测试全绿'); set('thank-code',fmt(DATA.codeLines)+' 行源码');
+            const maxVal=Math.max(...DATA.testSuites.map(s=>s.count)); const chartMax=Math.ceil(maxVal/10)*10;
+            const barBaseY=310, barMaxH=230;
+            DATA.testSuites.forEach((suite,i)=>{
+                const barH=(suite.count/chartMax)*barMaxH;
+                const bar=document.getElementById(`svg-bar-${i}`); const val=document.getElementById(`svg-val-${i}`);
+                if(bar){bar.setAttribute('y',barBaseY-barH);bar.setAttribute('height',barH);bar.setAttribute('fill',suite.color);}
+                if(val){val.setAttribute('y',barBaseY-barH-8);val.textContent=suite.count;}
+            });
+            set('svg-chart-title',DATA.testCount+' 用例全部通过 ('+DATA.testTime+')');
+            set('svg-chart-footer','合计：'+DATA.testCount+' 用例 · 0 失败 · 耗时 '+DATA.testTime);
+            set('bar-fullchain-val',DATA.testSuites[0].count); set('bar-wutong-val',DATA.testSuites[1].count);
+            set('bar-llm-val',DATA.testSuites[2].count); set('bar-obs-val',DATA.testSuites[3].count);
+        }
+        function animateSlide15() {
+            const maxVal=Math.max(...DATA.testSuites.map(s=>s.count)); const pct=(v)=>(v/maxVal*100).toFixed(0)+'%';
+            setTimeout(()=>{const fill=(id,val)=>{const el=document.getElementById(id);if(el)el.style.width=val;};
+                fill('bar-fullchain',pct(DATA.testSuites[0].count)); fill('bar-wutong',pct(DATA.testSuites[1].count));
+                fill('bar-llm',pct(DATA.testSuites[2].count)); fill('bar-obs',pct(DATA.testSuites[3].count));
+            },200);
+        }
+        populateData();
+    </script>
+</body>
+</html>

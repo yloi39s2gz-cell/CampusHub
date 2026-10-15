@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# Logs
+*.log
+src/logs/
+
+# Env / secrets
+.env
+*.env
+
+# QA / internal
+report/QA_*.md
+report/*_backup*
+report/build/
+
+# PPT build artifacts
+ppt/node_modules/
+ppt/deck-png/
+ppt/ref-twinpulse/
+ppt/*.bak
+ppt/build-pdf.py
+ppt/export-deck.mjs
+ppt/package*.json
+
+# Misc
+.DS_Store
+dist/
